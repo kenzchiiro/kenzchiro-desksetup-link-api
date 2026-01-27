@@ -1,0 +1,25 @@
+package service
+
+import (
+	"context"
+
+	"github.com/kenzchiro/desksetup-link-api/internal/domain"
+)
+
+// ProductRepository defines the persistence port.
+type ProductRepository interface {
+	List(ctx context.Context) ([]domain.Product, error)
+	Get(ctx context.Context, id int64) (*domain.Product, bool, error)
+	Create(ctx context.Context, p domain.Product) (domain.Product, error)
+	Update(ctx context.Context, id int64, p domain.Product) (*domain.Product, bool, error)
+	Delete(ctx context.Context, id int64) (bool, error)
+}
+
+// ProductService coordinates business logic.
+type ProductService struct {
+	repo ProductRepository
+}
+
+func NewProductService(repo ProductRepository) *ProductService {
+	return &ProductService{repo: repo}
+}

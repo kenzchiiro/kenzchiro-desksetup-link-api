@@ -1,0 +1,117 @@
+// Example API Requests
+// You can use Postman, curl, or any HTTP client to test these endpoints
+
+// ============================================
+// 1. GET ALL PRODUCTS
+// ============================================
+GET http://localhost:3000/api/products
+
+
+// ============================================
+// 2. GET SINGLE PRODUCT BY ID
+// ============================================
+GET http://localhost:3000/api/products/1
+
+
+// ============================================
+// 3. CREATE A NEW PRODUCT
+// ============================================
+POST http://localhost:3000/api/products
+Content-Type: application/json
+
+{
+  "title": "Logitech MX Keys",
+  "category": ["keyboard"],
+  "brand": "Logitech",
+  "img": "assets/products/logitech-mx-keys.jpg",
+  "tag": "premium",
+  "description": "Advanced wireless keyboard with backlit keys",
+  "code": "MX-KEYS-001",
+  "links": {
+    "shopee": "https://s.shopee.co.th/...",
+    "tiktok": "https://tiktok.com/...",
+    "lazada": "https://lazada.co.th/...",
+    "other": "https://example.com/..."
+  }
+}
+
+
+// ============================================
+// 4. UPDATE A PRODUCT
+// ============================================
+PUT http://localhost:3000/api/products/1
+Content-Type: application/json
+
+{
+  "title": "Reptilian KX78 HE - Updated",
+  "category": ["keyboard"],
+  "brand": "Saru Space",
+  "img": "assets/products/saru-kx78he.jpg",
+  "tag": "new",
+  "description": "Gaming Magnetic Keyboard | Updated Description",
+  "code": "",
+  "links": {
+    "shopee": "https://s.shopee.co.th/806LteAKoG",
+    "tiktok": "https://tiktok.com/...",
+    "lazada": "https://lazada.co.th/...",
+    "other": ""
+  }
+}
+
+
+// ============================================
+// 5. DELETE A PRODUCT
+// ============================================
+DELETE http://localhost:3000/api/products/1
+
+
+// ============================================
+// Using CURL
+// ============================================
+
+// GET all products
+curl http://localhost:3000/api/products
+
+// GET single product
+curl http://localhost:3000/api/products/1
+
+// CREATE product
+curl -X POST http://localhost:3000/api/products \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "New Product",
+    "category": ["keyboard"],
+    "brand": "Brand Name",
+    "img": "assets/products/image.jpg",
+    "tag": "new",
+    "description": "Product description",
+    "code": "",
+    "links": {
+      "shopee": "https://...",
+      "tiktok": "",
+      "lazada": "",
+      "other": ""
+    }
+  }'
+
+// UPDATE product
+curl -X PUT http://localhost:3000/api/products/1 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Updated Product",
+    "category": ["keyboard"],
+    "brand": "Brand Name",
+    "img": "assets/products/image.jpg",
+    "tag": "new",
+    "description": "Updated description",
+    "code": "",
+    "links": {
+      "shopee": "https://...",
+      "tiktok": "",
+      "lazada": "",
+      "other": ""
+    }
+  }'
+
+// DELETE product
+curl -X DELETE http://localhost:3000/api/products/1
