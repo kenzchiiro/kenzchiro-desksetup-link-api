@@ -44,15 +44,18 @@ func (r *HighlightRepository) List(ctx context.Context) ([]domain.Highlight, err
 
 	var rows []highlightWithProduct
 	err := r.db.SelectContext(ctx, &rows, `
-		       SELECT h.id, h.product_id, h.priority, h.end_date, h.created_at, h.updated_at,
-			      p.id as p_id, p.title as p_title, p.brand as p_brand, p.img as p_img, p.category as p_category, p.description as p_description, p.code as p_code, p.tag as p_tag, p.links as p_links, p.created_at as p_created_at, p.updated_at as p_updated_at
-		       FROM highlights h
-		       JOIN products p ON h.product_id = p.id
-		       ORDER BY h.priority DESC, h.created_at DESC
-	       `)
+		      SELECT h.id, h.product_id, h.priority, h.end_date, h.created_at, h.updated_at,
+			     p.id as p_id, p.title as p_title, p.brand as p_brand, p.img as p_img, p.category as p_category, p.description as p_description, p.code as p_code, p.tag as p_tag, p.links as p_links, p.created_at as p_created_at, p.updated_at as p_updated_at
+		      FROM highlights h
+		      JOIN products p ON h.product_id = p.id
+		      ORDER BY h.priority DESC, h.created_at DESC
+	      `)
 	if err != nil {
 		return nil, err
 	}
+
+	// manual wiring: create a temp ProductRepository for sub_items
+	productRepo := &ProductRepository{db: r.db, timeout: r.timeout}
 
 	highlights := make([]domain.Highlight, 0, len(rows))
 	for _, row := range rows {
@@ -79,6 +82,9 @@ func (r *HighlightRepository) List(ctx context.Context) ([]domain.Highlight, err
 		if row.LinksJSON != "" {
 			_ = json.Unmarshal([]byte(row.LinksJSON), &prod.Links)
 		}
+		// join sub_items
+		subItems, _ := productRepo.getSubItems(ctx, prod.ID)
+		prod.SubItems = subItems
 		h := row.Highlight
 		h.Product = prod
 		highlights = append(highlights, h)
