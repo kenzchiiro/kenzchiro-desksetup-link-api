@@ -33,7 +33,7 @@ func (r *ProductRepository) List(ctx context.Context) ([]domain.Product, error) 
 	}
 
 	err := r.db.SelectContext(ctx, &dbProducts, `
-		SELECT id, title, category, brand, img, tag, description, code, links
+		SELECT id, title, category, brand, img, tag, description, code, links, created_at, updated_at
 		FROM products
 		ORDER BY id
 	`)
@@ -50,6 +50,11 @@ func (r *ProductRepository) List(ctx context.Context) ([]domain.Product, error) 
 		if dbp.LinksJSON != "" {
 			_ = json.Unmarshal([]byte(dbp.LinksJSON), &p.Links)
 		}
+
+		// Fetch sub_items for this product
+		subItems, _ := r.getSubItems(ctx, p.ID)
+		p.SubItems = subItems
+
 		products = append(products, p)
 	}
 
@@ -67,7 +72,7 @@ func (r *ProductRepository) Get(ctx context.Context, id int64) (*domain.Product,
 	}
 
 	err := r.db.GetContext(ctx, &dbProduct, `
-		SELECT id, title, category, brand, img, tag, description, code, links
+		SELECT id, title, category, brand, img, tag, description, code, links, created_at, updated_at
 		FROM products
 		WHERE id = $1
 		LIMIT 1
@@ -87,6 +92,10 @@ func (r *ProductRepository) Get(ctx context.Context, id int64) (*domain.Product,
 	if dbProduct.LinksJSON != "" {
 		_ = json.Unmarshal([]byte(dbProduct.LinksJSON), &p.Links)
 	}
+
+	// Fetch sub_items for this product
+	subItems, _ := r.getSubItems(ctx, p.ID)
+	p.SubItems = subItems
 
 	return &p, true, nil
 }
@@ -169,6 +178,40 @@ func (r *ProductRepository) Update(ctx context.Context, id int64, p domain.Produ
 
 	p.ID = id
 	return &p, true, nil
+}
+
+// getSubItems fetches sub_items for a product and converts individual link fields to Links map
+func (r *ProductRepository) getSubItems(ctx context.Context, productID int64) ([]domain.SubItem, error) {
+	var dbSubItems []struct {
+		domain.SubItem
+		CategoryJSON string `db:"category"`
+	}
+
+	err := r.db.SelectContext(ctx, &dbSubItems, `
+		SELECT id, product_id, title, subtitle, brand, img, category, description, code,
+		       shopee_link, tiktok_link, lazada_link, other_link, display_order,
+		       created_at, updated_at
+		FROM sub_items
+		WHERE product_id = $1
+		ORDER BY display_order ASC, id ASC
+	`, productID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	subItems := make([]domain.SubItem, 0, len(dbSubItems))
+	for _, dbsi := range dbSubItems {
+		si := dbsi.SubItem
+		if dbsi.CategoryJSON != "" {
+			_ = json.Unmarshal([]byte(dbsi.CategoryJSON), &si.Category)
+		}
+		// Convert individual link fields to Links map
+		si.ToLinks()
+		subItems = append(subItems, si)
+	}
+
+	return subItems, nil
 }
 
 func (r *ProductRepository) Delete(ctx context.Context, id int64) (bool, error) {
