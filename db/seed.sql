@@ -3,7 +3,26 @@
 
 BEGIN;
 
--- products
+-- categories
+CREATE TABLE IF NOT EXISTS categories (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    description TEXT,
+    seq SMALLINT DEFAULT 0
+);
+
+INSERT INTO categories (name, description, seq) VALUES
+    ('collection', 'Collections', 1),
+    ('keyboard', 'Keyboards', 2),
+    ('mouse', 'Mouse', 3),
+    ('setup', 'Desk Setup', 4),
+    ('lighting', 'Lighting Setup', 5),
+    ('gadgets', 'Gadgets / Smart Devices', 6),
+    ('deskmat', 'Mousepads / Deskmats', 7),
+    ('sound', 'Microphones / Speakers / Headphones / Audio devices', 8),
+    ('pc', 'PC build', 9)
+ON CONFLICT (name) DO NOTHING;
+
 CREATE TABLE IF NOT EXISTS products (
     id BIGSERIAL PRIMARY KEY,
     title VARCHAR(255) NOT NULL,

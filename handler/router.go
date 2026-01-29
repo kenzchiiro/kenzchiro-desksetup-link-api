@@ -7,7 +7,7 @@ import (
 )
 
 // NewRouter wires handlers and middleware.
-func NewRouter(productHandler *ProductHandler, highlightHandler *HighlightHandler) *gin.Engine {
+func NewRouter(productHandler *ProductHandler, highlightHandler *HighlightHandler, categoryHandler *CategoryHandler) *gin.Engine {
 	r := gin.Default()
 
 	// CORS middleware
@@ -21,6 +21,7 @@ func NewRouter(productHandler *ProductHandler, highlightHandler *HighlightHandle
 	// Register routes
 	productHandler.RegisterRoutes(r)
 	highlightHandler.RegisterRoutes(r)
+	categoryHandler.RegisterRoutes(r)
 
 	return r
 }

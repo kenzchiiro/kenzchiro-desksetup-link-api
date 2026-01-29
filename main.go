@@ -30,8 +30,13 @@ func main() {
 	highlightSvc := service.NewHighlightService(highlightRepo)
 	highlightHandler := handler.NewHighlightHandler(highlightSvc)
 
+	// Category setup
+	categoryRepo := repository.NewCategoryRepository(database)
+	categorySvc := service.NewCategoryService(categoryRepo)
+	categoryHandler := handler.NewCategoryHandler(categorySvc)
+
 	// Router
-	router := handler.NewRouter(productHandler, highlightHandler)
+	router := handler.NewRouter(productHandler, highlightHandler, categoryHandler)
 
 	port := os.Getenv("PORT")
 
