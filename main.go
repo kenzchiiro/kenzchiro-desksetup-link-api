@@ -7,8 +7,12 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/kenzchiro/desksetup-link-api/db"
 	"github.com/kenzchiro/desksetup-link-api/handler"
-	"github.com/kenzchiro/desksetup-link-api/repository"
-	"github.com/kenzchiro/desksetup-link-api/service"
+	categoryRepository "github.com/kenzchiro/desksetup-link-api/repositories/category"
+	highlightRepository "github.com/kenzchiro/desksetup-link-api/repositories/highlight"
+	productRepository "github.com/kenzchiro/desksetup-link-api/repositories/product"
+	"github.com/kenzchiro/desksetup-link-api/services/category"
+	"github.com/kenzchiro/desksetup-link-api/services/highlight"
+	"github.com/kenzchiro/desksetup-link-api/services/product"
 )
 
 func main() {
@@ -21,18 +25,18 @@ func main() {
 	defer database.Close()
 
 	// Product setup
-	productRepo := repository.NewProductRepository(database)
-	productSvc := service.NewProductService(productRepo)
+	productRepo := productRepository.NewProductRepository(database)
+	productSvc := product.NewProductService(productRepo)
 	productHandler := handler.NewProductHandler(productSvc)
 
 	// Highlight setup
-	highlightRepo := repository.NewHighlightRepository(database)
-	highlightSvc := service.NewHighlightService(highlightRepo)
+	highlightRepo := highlightRepository.NewHighlightRepository(database)
+	highlightSvc := highlight.NewHighlightService(highlightRepo, productRepo)
 	highlightHandler := handler.NewHighlightHandler(highlightSvc)
 
 	// Category setup
-	categoryRepo := repository.NewCategoryRepository(database)
-	categorySvc := service.NewCategoryService(categoryRepo)
+	categoryRepo := categoryRepository.NewCategoryRepository(database)
+	categorySvc := category.NewCategoryService(categoryRepo)
 	categoryHandler := handler.NewCategoryHandler(categorySvc)
 
 	// Router

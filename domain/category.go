@@ -5,4 +5,5 @@ type Category struct {
 	Name        string `db:"name" json:"name"`
 	Description string `db:"description" json:"description"`
 	Seq         int16  `db:"seq" json:"seq"`
+	Icon        string `db:"icon" json:"icon"`
 }

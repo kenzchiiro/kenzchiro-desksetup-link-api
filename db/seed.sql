@@ -8,19 +8,20 @@ CREATE TABLE IF NOT EXISTS categories (
     id BIGSERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL UNIQUE,
     description TEXT,
-    seq SMALLINT DEFAULT 0
+    seq SMALLINT DEFAULT 0,
+    icon VARCHAR(100) DEFAULT ''
 );
 
-INSERT INTO categories (name, description, seq) VALUES
-    ('collection', 'Collections', 1),
-    ('keyboard', 'Keyboards', 2),
-    ('mouse', 'Mouse', 3),
-    ('setup', 'Desk Setup', 4),
-    ('lighting', 'Lighting Setup', 5),
-    ('gadgets', 'Gadgets / Smart Devices', 6),
-    ('deskmat', 'Mousepads / Deskmats', 7),
-    ('sound', 'Microphones / Speakers / Headphones / Audio devices', 8),
-    ('pc', 'PC build', 9)
+INSERT INTO categories (name, description, seq, icon) VALUES
+    ('collection', 'Collections', 1, 'collections'),
+    ('keyboard', 'Keyboards', 2, 'keyboard'),
+    ('mouse', 'Mouse', 3, 'mouse'),
+    ('setup', 'Desk Setup', 4, 'desktop_windows'),
+    ('lighting', 'Lighting Setup', 5, 'lightbulb'),
+    ('gadgets', 'Gadgets / Smart Devices', 6, 'devices_other'),
+    ('deskmat', 'Mousepads / Deskmats', 7, 'texture'),
+    ('sound', 'Microphones / Speakers / Headphones / Audio devices', 8, 'speaker'),
+    ('pc', 'PC build', 9, 'memory')
 ON CONFLICT (name) DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS products (
@@ -33,26 +34,7 @@ CREATE TABLE IF NOT EXISTS products (
     code VARCHAR(50),
     tag VARCHAR(50),
     links JSONB,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
--- sub_items
-CREATE TABLE IF NOT EXISTS sub_items (
-    id BIGSERIAL PRIMARY KEY,
-    product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-    title VARCHAR(255) NOT NULL,
-    subtitle VARCHAR(100),
-    brand VARCHAR(100),
-    img VARCHAR(255),
-    category JSONB,
-    description TEXT,
-    code VARCHAR(50),
-    shopee_link VARCHAR(255),
-    tiktok_link VARCHAR(255),
-    lazada_link VARCHAR(255),
-    other_link VARCHAR(255),
-    display_order SMALLINT DEFAULT 0,
+    parent_product BIGINT REFERENCES products(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -124,9 +106,9 @@ WITH data AS (
         ('soundcore-aeroclip', 'Soundcore AeroClip', '["headphone"]', '', 'assets/products/soundcore-aeroclip.png', '', '', '{"shopee":"","tiktok":"https://vt.tiktok.com/ZSDT1V1P4/","lazada":"","other":""}'),
         ('torras-ostand-q3-air', 'Torras - Ostand Q3 Air', '["phone accessories"]', 'torras', 'assets/products/torras-ostand-q3-air.png', '', 'iPhone Case', '{"shopee":"https://s.shopee.co.th/4LBpb9gqgd","tiktok":"https://vt.tiktok.com/ZSHE1nwr55Wu7-T4JGv/","lazada":"","other":""}'),
         ('maktar-qubii-duo', 'Qubii duo', '["phone accessories"]', 'maktar', 'assets/products/maktar-qubii-duo.png', '', '', '{"shopee":"","tiktok":"https://vt.tiktok.com/ZSHcBScmJqxfd-jF6uH/","lazada":"","other":""}')
-    ) AS t(code, title, category, brand, img, tag, description, links)
+    ) AS t(code, title, category, brand, img, tag, description, links, parent_product)
 )
-INSERT INTO products (title, category, brand, img, tag, description, code, links)
+INSERT INTO products (title, category, brand, img, tag, description, code, links, parent_product)
 SELECT title,
        category::jsonb,
        NULLIF(brand, ''),
@@ -138,46 +120,53 @@ SELECT title,
 FROM data
 WHERE NOT EXISTS (SELECT 1 FROM products p WHERE p.code = data.code);
 
--- seed sub_items (from group_items / ITX build)
-WITH parent AS (
-    SELECT code, id FROM products WHERE code IN ('itx-build','razer-phantom-white','elgato-neo')
-), data AS (
+
+-- seed group items as products with parent_product
+-- ITX Build group
+WITH parent AS (SELECT id FROM products WHERE code = 'itx-build')
+, data AS (
     SELECT * FROM (VALUES
-        -- ITX Build group
-        ('itx-build', 'Formd T1 (mini ITX)', 'Case', '["pc","case"]', 'formd', 'assets/pc/case.png', '9.95L SFF case | A4 paper-sized footprint | AIO support | CNC machined aluminum | Premium anodizing', 'formd-t1-mini-itx', '{"shopee":"https://s.shopee.co.th/2AytqlipMP","tiktok":"","lazada":"","other":"https://formdt1.com/?srsltid=AfmBOoqru1hRu31Qvmv-Bl1yMeR3Ly9d5QGz91FZ37Ao1V1_Xk1P1T_v"}', 1),
-        ('itx-build', 'Aorus - X870I AORUS PRO ICE', 'Mainboard', '["pc","mainboard"]', 'aorus', 'assets/pc/mainboard.png', 'AMD X870I chipset | 8+2+1 phase VRM | DDR5 8400+ MT/s | PCIe 5.0 x16 | 2x M.2 (PCIe 5.0/4.0) | USB4 40Gbps | WiFi 7 | 2.5GbE LAN', 'aorus-x870i-aorus-pro-ice', '{"shopee":"https://s.shopee.co.th/3VXMhtMcGp","tiktok":"","lazada":"","other":"https://www.gigabyte.com/th/Motherboard/X870I-AORUS-PRO-ICE-rev-10"}', 2),
-        ('itx-build', 'AMD - Ryzen 7 7800X3D', 'CPU', '["pc","cpu"]', 'amd', 'assets/pc/cpu.png', '8 cores 16 threads | Up to 5.0 GHz boost | 96MB 3D V-Cache | Zen 4 architecture | 120W TDP | Dominant gaming processor', 'amd-ryzen-7-7800x3d', '{"shopee":"https://s.shopee.co.th/4VPq3hwj9U","tiktok":"","lazada":"","other":""}', 3),
-        ('itx-build', 'Cooler Master - Master Liquid Atmos 240 ii - LCD', 'CPU Cooler', '["pc","cpu cooler"]', 'cooler master', 'assets/pc/cpu-cooler.png', '240mm AIO liquid cooler | LCD screen display | Dual 120mm fans | Optimized for high-end CPUs | Silent operation', 'cooler-master-master-liquid-atmos-240-ii-lcd', '{"shopee":"https://s.shopee.co.th/AKUKaclio3","tiktok":"","lazada":"","other":""}', 4),
-        ('itx-build', 'MSI MAG 274QRFW - 27" IPS 2K 180Hz', 'Monitor', '["pc","monitor"]', 'msi', 'assets/pc/monitor.png', '27" IPS panel | 2560x1440 (2K) | 180Hz refresh rate | Rapid IPS 1ms response | HDR support | Gaming features', 'msi-mag-274qrfw', '{"shopee":"https://s.shopee.co.th/1Vohpmfyfj","tiktok":"","lazada":"","other":""}', 5),
-        -- Razer Phantom White collection
-        ('razer-phantom-white', 'Barracuda - Phantom White', NULL, '["phantom white","headset"]', 'razer', 'assets/products/razer-barracuda.png', '', 'razer-barracuda-phantom-white', '{"shopee":"https://s.shopee.co.th/30fsbEEnEC","tiktok":"","lazada":"","other":""}', 1),
-        ('razer-phantom-white', 'Basilisk V3 Pro - Phantom White', NULL, '["phantom white","mouse"]', 'razer', 'assets/products/razer-basilisk-v3-pro.png', '', 'razer-basilisk-v3-pro-phantom-white', '{"shopee":"https://s.shopee.co.th/50Qwyvp7GJ","tiktok":"","lazada":"","other":""}', 2),
-        ('razer-phantom-white', 'Black Widow V4 - Phantom White', NULL, '["phantom white","keyboard"]', 'razer', 'assets/products/razer-black-widow-v4.png', '', 'razer-black-widow-v4-phantom-white', '{"shopee":"https://s.shopee.co.th/804YYWF7wO","tiktok":"","lazada":"","other":""}', 3),
-        ('razer-phantom-white', 'Firefly V2 - Phantom White', NULL, '["phantom white","mousepad"]', 'razer', 'assets/products/razer-firefly-v2.png', '', 'razer-firefly-v2-phantom-white', '{"shopee":"https://s.shopee.co.th/VyXcnSnNm","tiktok":"","lazada":"","other":""}', 4),
-        -- Elgato Neo collection
-        ('elgato-neo', 'Elgato - Wave Neo', NULL, '["neo","microphone"]', 'elgato', 'assets/products/elgato-wave-neo.png', '', 'elgato-wave-neo', '{"shopee":"https://s.shopee.co.th/1qVPklXv0u","tiktok":"https://vt.tiktok.com/ZSHEdExtBHKTk-FilJI/","lazada":"https://s.lazada.co.th/s.Zb96Sc","other":""}', 1),
-        ('elgato-neo', 'Elgato - Stream Deck Neo', NULL, '["neo","gadgets"]', 'elgato', 'assets/products/elgato-stream-deck-neo.png', '', 'elgato-stream-deck-neo', '{"shopee":"https://s.shopee.co.th/8KitUj73Dt","tiktok":"https://vt.tiktok.com/ZSHEdExtBHKTk-FilJI/","lazada":"https://s.lazada.co.th/s.Zb96Sc","other":""}', 2),
-        ('elgato-neo', 'Elgato - Capture Card Neo', NULL, '["neo","gadgets"]', 'elgato', 'assets/products/elgato-capture-card-neo.png', '', 'elgato-capture-card-neo', '{"shopee":"https://s.shopee.co.th/9pXhHcxuZ2","tiktok":"https://vt.tiktok.com/ZSHEdExtBHKTk-FilJI/","lazada":"https://s.lazada.co.th/s.Zb96Sc","other":""}', 3),
-        ('elgato-neo', 'Elgato - Facecam Neo', NULL, '["neo","webcam"]', 'elgato', 'assets/products/elgato-facecam-neo.png', '', 'elgato-facecam-neo', '{"shopee":"https://s.shopee.co.th/8KitV1zRdc","tiktok":"https://vt.tiktok.com/ZSHEdExtBHKTk-FilJI/","lazada":"https://s.lazada.co.th/s.Zb96Sc","other":""}', 4)
-    ) AS t(parent_code, title, subtitle, category, brand, img, description, code, links, display_order)
+        ('Formd T1 (mini ITX)', '["pc","case"]', 'formd', 'assets/pc/case.png', '9.95L SFF case | A4 paper-sized footprint | AIO support | CNC machined aluminum | Premium anodizing', 'formd-t1-mini-itx', '{"shopee":"https://s.shopee.co.th/2AytqlipMP","tiktok":"","lazada":"","other":"https://formdt1.com/?srsltid=AfmBOoqru1hRu31Qvmv-Bl1yMeR3Ly9d5QGz91FZ37Ao1V1_Xk1P1T_v"}'),
+        ('Aorus - X870I AORUS PRO ICE', '["pc","mainboard"]', 'aorus', 'assets/pc/mainboard.png', 'AMD X870I chipset | 8+2+1 phase VRM | DDR5 8400+ MT/s | PCIe 5.0 x16 | 2x M.2 (PCIe 5.0/4.0) | USB4 40Gbps | WiFi 7 | 2.5GbE LAN', 'aorus-x870i-aorus-pro-ice', '{"shopee":"https://s.shopee.co.th/3VXMhtMcGp","tiktok":"","lazada":"","other":"https://www.gigabyte.com/th/Motherboard/X870I-AORUS-PRO-ICE-rev-10"}'),
+        ('AMD - Ryzen 7 7800X3D', '["pc","cpu"]', 'amd', 'assets/pc/cpu.png', '8 cores 16 threads | Up to 5.0 GHz boost | 96MB 3D V-Cache | Zen 4 architecture | 120W TDP | Dominant gaming processor', 'amd-ryzen-7-7800x3d', '{"shopee":"https://s.shopee.co.th/4VPq3hwj9U","tiktok":"","lazada":"","other":""}'),
+        ('Cooler Master - Master Liquid Atmos 240 ii - LCD', '["pc","cpu cooler"]', 'cooler master', 'assets/pc/cpu-cooler.png', '240mm AIO liquid cooler | LCD screen display | Dual 120mm fans | Optimized for high-end CPUs | Silent operation', 'cooler-master-master-liquid-atmos-240-ii-lcd', '{"shopee":"https://s.shopee.co.th/AKUKaclio3","tiktok":"","lazada":"","other":""}'),
+        ('MSI MAG 274QRFW - 27" IPS 2K 180Hz', '["pc","monitor"]', 'msi', 'assets/pc/monitor.png', '27" IPS panel | 2560x1440 (2K) | 180Hz refresh rate | Rapid IPS 1ms response | HDR support | Gaming features', 'msi-mag-274qrfw', '{"shopee":"https://s.shopee.co.th/1Vohpmfyfj","tiktok":"","lazada":"","other":""}')
+    ) AS t(title, category, brand, img, description, code, links)
 )
-INSERT INTO sub_items (product_id, title, subtitle, brand, img, category, description, code, shopee_link, tiktok_link, lazada_link, other_link, display_order)
-SELECT p.id,
-       d.title,
-       d.subtitle,
-       NULLIF(d.brand, ''),
-       d.img,
-       d.category::jsonb,
-       d.description,
-       d.code,
-       d.links::jsonb->>'shopee',
-       d.links::jsonb->>'tiktok',
-       d.links::jsonb->>'lazada',
-       d.links::jsonb->>'other',
-       d.display_order
-FROM data d
-JOIN parent p ON p.code = d.parent_code
-WHERE NOT EXISTS (SELECT 1 FROM sub_items s WHERE s.code = d.code);
+INSERT INTO products (title, category, brand, img, description, code, links, parent_product)
+SELECT d.title, d.category::jsonb, d.brand, d.img, d.description, d.code, d.links::jsonb, p.id
+FROM data d CROSS JOIN parent p
+WHERE NOT EXISTS (SELECT 1 FROM products p2 WHERE p2.code = d.code);
+
+-- Razer Phantom White collection
+WITH parent AS (SELECT id FROM products WHERE code = 'razer-phantom-white')
+, data AS (
+    SELECT * FROM (VALUES
+        ('Barracuda - Phantom White', '["phantom white","headset"]', 'razer', 'assets/products/razer-barracuda.png', '', 'razer-barracuda-phantom-white', '{"shopee":"https://s.shopee.co.th/30fsbEEnEC","tiktok":"","lazada":"","other":""}'),
+        ('Basilisk V3 Pro - Phantom White', '["phantom white","mouse"]', 'razer', 'assets/products/razer-basilisk-v3-pro.png', '', 'razer-basilisk-v3-pro-phantom-white', '{"shopee":"https://s.shopee.co.th/50Qwyvp7GJ","tiktok":"","lazada":"","other":""}'),
+        ('Black Widow V4 - Phantom White', '["phantom white","keyboard"]', 'razer', 'assets/products/razer-black-widow-v4.png', '', 'razer-black-widow-v4-phantom-white', '{"shopee":"https://s.shopee.co.th/804YYWF7wO","tiktok":"","lazada":"","other":""}'),
+        ('Firefly V2 - Phantom White', '["phantom white","mousepad"]', 'razer', 'assets/products/razer-firefly-v2.png', '', 'razer-firefly-v2-phantom-white', '{"shopee":"https://s.shopee.co.th/VyXcnSnNm","tiktok":"","lazada":"","other":""}')
+    ) AS t(title, category, brand, img, description, code, links)
+)
+INSERT INTO products (title, category, brand, img, description, code, links, parent_product)
+SELECT d.title, d.category::jsonb, d.brand, d.img, d.description, d.code, d.links::jsonb, p.id
+FROM data d CROSS JOIN parent p
+WHERE NOT EXISTS (SELECT 1 FROM products p2 WHERE p2.code = d.code);
+
+-- Elgato Neo collection
+WITH parent AS (SELECT id FROM products WHERE code = 'elgato-neo')
+, data AS (
+    SELECT * FROM (VALUES
+        ('Elgato - Wave Neo', '["neo","microphone"]', 'elgato', 'assets/products/elgato-wave-neo.png', '', 'elgato-wave-neo', '{"shopee":"https://s.shopee.co.th/1qVPklXv0u","tiktok":"https://vt.tiktok.com/ZSHEdExtBHKTk-FilJI/","lazada":"https://s.lazada.co.th/s.Zb96Sc","other":""}'),
+        ('Elgato - Stream Deck Neo', '["neo","gadgets"]', 'elgato', 'assets/products/elgato-stream-deck-neo.png', '', 'elgato-stream-deck-neo', '{"shopee":"https://s.shopee.co.th/8KitUj73Dt","tiktok":"https://vt.tiktok.com/ZSHEdExtBHKTk-FilJI/","lazada":"https://s.lazada.co.th/s.Zb96Sc","other":""}'),
+        ('Elgato - Capture Card Neo', '["neo","gadgets"]', 'elgato', 'assets/products/elgato-capture-card-neo.png', '', 'elgato-capture-card-neo', '{"shopee":"https://s.shopee.co.th/9pXhHcxuZ2","tiktok":"https://vt.tiktok.com/ZSHEdExtBHKTk-FilJI/","lazada":"https://s.lazada.co.th/s.Zb96Sc","other":""}'),
+        ('Elgato - Facecam Neo', '["neo","webcam"]', 'elgato', 'assets/products/elgato-facecam-neo.png', '', 'elgato-facecam-neo', '{"shopee":"https://s.shopee.co.th/8KitV1zRdc","tiktok":"https://vt.tiktok.com/ZSHEdExtBHKTk-FilJI/","lazada":"https://s.lazada.co.th/s.Zb96Sc","other":""}')
+    ) AS t(title, category, brand, img, description, code, links)
+)
+INSERT INTO products (title, category, brand, img, description, code, links, parent_product)
+SELECT d.title, d.category::jsonb, d.brand, d.img, d.description, d.code, d.links::jsonb, p.id
+FROM data d CROSS JOIN parent p
+WHERE NOT EXISTS (SELECT 1 FROM products p2 WHERE p2.code = d.code);
 
 
 -- seed highlights

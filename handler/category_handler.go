@@ -4,14 +4,14 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/kenzchiro/desksetup-link-api/service"
+	"github.com/kenzchiro/desksetup-link-api/services/category"
 )
 
 type CategoryHandler struct {
-	service *service.CategoryService
+	service *category.CategoryService
 }
 
-func NewCategoryHandler(svc *service.CategoryService) *CategoryHandler {
+func NewCategoryHandler(svc *category.CategoryService) *CategoryHandler {
 	return &CategoryHandler{service: svc}
 }
 

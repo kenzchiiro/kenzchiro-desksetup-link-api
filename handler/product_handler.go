@@ -6,24 +6,22 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/kenzchiro/desksetup-link-api/domain"
-	"github.com/kenzchiro/desksetup-link-api/service"
+	"github.com/kenzchiro/desksetup-link-api/services/product"
 )
 
 type ProductHandler struct {
-	service *service.ProductService
+	service *product.ProductService
 }
 
-func NewProductHandler(service *service.ProductService) *ProductHandler {
+func NewProductHandler(service *product.ProductService) *ProductHandler {
 	return &ProductHandler{service: service}
 }
 
 func (h *ProductHandler) RegisterRoutes(r *gin.Engine) {
 	api := r.Group("/api/products")
 	{
-		api.GET("", h.GetAll)
 		api.GET("/", h.GetAll)
 		api.GET("/:id", h.GetByID)
-		api.POST("", h.Create)
 		api.POST("/", h.Create)
 		api.PUT("/:id", h.Update)
 		api.DELETE("/:id", h.Delete)
